@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KuntalVision | Modern Resume Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .progress-ring { transition: stroke-dashoffset 0.35s; transform: rotate(-90deg); transform-origin: 50% 50%; }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="flex justify-between items-center mb-12">
+            <div>
+                <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent">KuntalVision</h1>
+                <p class="text-slate-400 text-sm">AI-Powered Resume Simulation</p>
+            </div>
+            <div class="text-right hidden md:block">
+                <span class="text-xs font-mono text-emerald-400 bg-emerald-400/10 px-2 py-1 rounded">SYSTEM ONLINE</span>
+            </div>
+        </header>
+
+        <div id="upload-container" class="glass rounded-3xl p-10 text-center border-2 border-dashed border-slate-700 hover:border-blue-500 transition-all cursor-pointer">
+            <input type="file" id="fileInput" class="hidden" accept=".txt">
+            <div class="flex flex-col items-center gap-4">
+                <div class="bg-blue-500/20 p-4 rounded-full">
+                    <i data-lucide="upload-cloud" class="w-8 h-8 text-blue-400"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold">Upload your resume</h2>
+                    <p class="text-slate-400 mt-1">Drag and drop or click to browse (Text files only for demo)</p>
+                </div>
+                <button onclick="document.getElementById('fileInput').click()" class="mt-4 bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg font-medium transition">Select File</button>
+            </div>
+        </div>
+
+        <div id="loading-state" class="hidden py-20 text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mb-4"></div>
+            <p class="text-lg animate-pulse">Analyzing structure and keywords...</p>
+        </div>
+
+        <div id="results-container" class="hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass p-6 rounded-2xl flex flex-col items-center justify-center">
+                    <div class="relative w-32 h-32">
+                        <svg class="w-full h-full">
+                            <circle class="text-slate-800" stroke-width="8" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                            <circle id="score-circle" class="text-emerald-500 progress-ring" stroke-width="8" stroke-dasharray="364.4" stroke-dashoffset="364.4" stroke-linecap="round" stroke="currentColor" fill="transparent" r="58" cx="64" cy="64"/>
+                        </svg>
+                        <span id="score-text" class="absolute inset-0 flex items-center justify-center text-3xl font-bold">0</span>
+                    </div>
+                    <p class="mt-4 font-semibold text-slate-300">Overall Match Score</p>
+                </div>
+
+                <div class="md:col-span-2 glass p-6 rounded-2xl">
+                    <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="alert-circle" class="text-amber-400 w-5 h-5"></i> Missing Elements
+                    </h3>
+                    <div id="missing-tags" class="flex flex-wrap gap-2">
+                        </div>
+                </div>
+            </div>
+
+            <div class="glass p-8 rounded-2xl">
+                <h3 class="text-xl font-semibold mb-6">Improvement Roadmap</h3>
+                <div id="feedback-list" class="space-y-4">
+                    </div>
+                <button onclick="location.reload()" class="mt-8 text-slate-400 hover:text-white flex items-center gap-2 text-sm">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> Analyze Another Resume
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        const fileInput = document.getElementById('fileInput');
+        const uploadContainer = document.getElementById('upload-container');
+        const loadingState = document.getElementById('loading-state');
+        const resultsContainer = document.getElementById('results-container');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        });
+
+        function processFile(file) {
+            uploadContainer.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result.toLowerCase();
+                
+                // Simulate processing delay
+                setTimeout(() => {
+                    analyzeResume(text);
+                }, 1500);
+            };
+            reader.readAsText(file);
+        }
+
+        function analyzeResume(text) {
+            loadingState.classList.add('hidden');
+            resultsContainer.classList.remove('hidden');
+
+            const sections = {
+                projects: ['project', 'portfolio', 'github'],
+                experience: ['experience', 'work history', 'employment'],
+                skills: ['skills', 'technologies', 'tools'],
+                education: ['education', 'university', 'college', 'degree']
+            };
+
+            const keywords = ['react', 'javascript', 'python', 'management', 'agile', 'leadership', 'api'];
+            
+            let missing = [];
+            let foundKeywords = [];
+            let score = 40; // Base score
+
+            // Check Sections
+            for (const [key, variants] of Object.entries(sections)) {
+                if (variants.some(v => text.includes(v))) {
+                    score += 10;
+                } else {
+                    missing.push(key.charAt(0).toUpperCase() + key.slice(1));
+                }
+            }
+
+            // Check Keywords
+            keywords.forEach(word => {
+                if (text.includes(word)) {
+                    score += 5;
+                    foundKeywords.push(word);
+                }
+            });
+
+            if (score > 100) score = 100;
+
+            displayResults(score, missing, foundKeywords);
+        }
+
+        function displayResults(score, missing, found) {
+            // Update Score Circle
+            const circle = document.getElementById('score-circle');
+            const scoreText = document.getElementById('score-text');
+            const radius = 58;
+            const circumference = 2 * Math.PI * radius;
+            const offset = circumference - (score / 100) * circumference;
+            
+            circle.style.strokeDashoffset = offset;
+            
+            // Animate number
+            let current = 0;
+            const interval = setInterval(() => {
+                if (current >= score) clearInterval(interval);
+                scoreText.innerText = current;
+                current++;
+            }, 20);
+
+            // Display Missing Sections
+            const missingContainer = document.getElementById('missing-tags');
+            missingContainer.innerHTML = missing.length ? '' : '<p class="text-emerald-400">All major sections found!</p>';
+            missing.forEach(item => {
+                const span = document.createElement('span');
+                span.className = "bg-amber-400/10 text-amber-400 border border-amber-400/20 px-3 py-1 rounded-full text-sm font-medium";
+                span.innerText = item;
+                missingContainer.appendChild(span);
+            });
+
+            // Display Suggestions
+            const feedbackList = document.getElementById('feedback-list');
+            const suggestions = [
+                { title: "Quantify Impact", text: "Try adding metrics (e.g., 'Increased efficiency by 20%') to your experience bullet points.", icon: 'trending-up' },
+                { title: "Keyword Optimization", text: `Found ${found.length} industry keywords. Try adding terms like "Cloud Computing" or "System Design" if applicable.`, icon: 'key' },
+                { title: "LinkedIn Presence", text: "Ensure your LinkedIn URL is clickable and your profile matches this resume.", icon: 'external-link' }
+            ];
+
+            feedbackList.innerHTML = suggestions.map(s => `
+                <div class="flex gap-4 p-4 rounded-xl bg-slate-800/50 border border-slate-700">
+                    <div class="text-blue-400"><i data-lucide="${s.icon}"></i></div>
+                    <div>
+                        <h4 class="font-semibold text-slate-100">${s.title}</h4>
+                        <p class="text-slate-400 text-sm mt-1">${s.text}</p>
+                    </div>
+                </div>
+            `).join('');
+            
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
